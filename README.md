@@ -10,6 +10,11 @@ This repository holds the published releases only. Download the latest from
 [Releases](../../releases/latest). Installed copies update themselves from here (see
 [Updates](#updates)).
 
+> **Required: the MiVB export job must be called `ascsync`.** On every controller, the ESM
+> Scheduler export job's **File Name** (under Activity Parameters) must be exactly `ascsync`.
+> The tool only reads exports named `ascsync_CSVExport_<controller>_<timestamp>.csv`. Any
+> other name is ignored, and that controller reports NO_FILES.
+
 - [How it works](#how-it-works)
 - [What you need](#what-you-need)
 - [Install](#install)
@@ -63,11 +68,16 @@ the optional `reassign_mode = "move"`.)
   (importing and exporting monitor points).
 - **A dedicated SFTP account that can see the export folder only.** Optional cleanup deletes old
   exports, so the account must not reach anything else.
-- **MiVB ESM Scheduler exports.** On every **primary** controller, schedule a nightly export of
-  the **User and Services Configuration** form to the one shared SFTP folder. Under Activity
-  Parameters, set the **File Name to `ascsync`**. The Scheduler then names the files
-  `ascsync_CSVExport_<controller>_<YYYYMMDDHHMMSS>.csv`. Exports with any other File Name are
-  ignored, so other export jobs can share the folder.
+- **A MiVB ESM Scheduler export job called `ascsync` on every primary controller.** Set it up
+  as follows:
+  - **Form:** User and Services Configuration.
+  - **Schedule:** nightly.
+  - **Destination:** the one shared SFTP folder.
+  - **File Name** (under Activity Parameters): exactly **`ascsync`**. This is not optional.
+
+  The Scheduler then names the files `ascsync_CSVExport_<controller>_<YYYYMMDDHHMMSS>.csv`.
+  Exports with any other File Name are never read or deleted, so other export jobs can safely
+  share the folder.
 
 ## Install
 
@@ -306,7 +316,7 @@ Add `--config PATH` before the command to use a config file other than the one b
 | "No '...' credential stored" in the nightly run | The password was never copied to SYSTEM | Save in the setup window (as administrator), or `task install` again |
 | "Access is denied" / "Not running as administrator" | Changing the task needs elevation | Right-click > Run as administrator, or accept the UAC prompt |
 | Last Run Result 0x80070002 | The exe or config moved | `task install` again from the new location |
-| NO_FILES for a controller | No `ascsync` export with that controller name in the folder | Check the Scheduler File Name is `ascsync`, the `[ftp] folder`, and that the controller name matches the file name (`test-connections` lists what it found) |
+| NO_FILES for a controller | No `ascsync` export with that controller name in the folder | Check the export job is called `ascsync` (its File Name under Activity Parameters must be exactly `ascsync`); then check the `[ftp] folder`, and that the controller name matches the file name. `test-connections` lists the exports it found, including any with another File Name |
 | STALE | The newest export is too old | Check the MiVB Scheduler job ran; nothing is removed meanwhile |
 | UNCHANGED | No new export since the last run | Check the Scheduler job |
 | PARTIAL / NOT_SETTLED | The file is incomplete or still being written | Usually fixes itself next run; `parse-file` the copy under `data_dir\runs\<run id>\downloads` |
